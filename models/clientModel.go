@@ -3,6 +3,7 @@ package models
 import (
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/gorilla/websocket"
 )
@@ -32,14 +33,19 @@ func (client *Client) ReadPump(manager *ClientManager) {
 			continue
 		}
 
-		if msg.RecipientID != "" {
-			recipientClient, ok := manager.Clients[msg.RecipientID]
+		msg.Created_at, _ = time.Parse(time.RFC3339, time.Now().Format(time.RFC3339))
+		msg.Sender_id = client.ID
+
+		msgBytes, err := json.Marshal(msg)
+
+		if msg.Recipient_id != "" {
+			recipientClient, ok := manager.Clients[msg.Recipient_id]
 			if !ok {
 				fmt.Println("recipient client is not connected")
 				continue
 			}
 			select {
-			case recipientClient.Send <- message:
+			case recipientClient.Send <- msgBytes:
 			default:
 				close(recipientClient.Send)
 				delete(manager.Clients, recipientClient.ID)
