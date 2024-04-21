@@ -36,7 +36,7 @@ func (client *Client) ReadPump(manager *ClientManager) {
 		msg.Created_at, _ = time.Parse(time.RFC3339, time.Now().Format(time.RFC3339))
 		msg.Sender_id = client.ID
 
-		msgBytes, err := json.Marshal(msg)
+		msgBytes, _ := json.Marshal(msg)
 
 		if msg.Recipient_id != "" {
 			recipientClient, ok := manager.Clients[msg.Recipient_id]
