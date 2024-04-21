@@ -1,49 +1,22 @@
 package controllers
 
 import (
-	"fmt"
-	"net/http"
+	"whispr-golang/models"
+	"whispr-golang/pkg/ws"
 
 	"github.com/gin-gonic/gin"
-	"github.com/gorilla/websocket"
 )
 
-var upgrader = websocket.Upgrader{
-	ReadBufferSize: 1024,
-	WriteBufferSize: 1024,
-	CheckOrigin: func(r *http.Request) bool {
-		return true
-	},
-}
-
-func WebsocketHandler() gin.HandlerFunc{
-	return func(ctx *gin.Context) {
-		conns := make(map[*websocket.Conn]bool)
-		conn, err := upgrader.Upgrade(ctx.Writer, ctx.Request, nil)
-		if err != nil {
-			fmt.Println("upgrader error:", err.Error())
-			return
-		}
-		defer conn.Close()
-	
-		fmt.Println("new incoming connection from client:", conn.RemoteAddr())
-	
-		conns[conn] = true
-	
-		for {
-			_, msg, err := conn.ReadMessage()
-			if err != nil {
-				fmt.Println("read error:", err.Error())
-				delete(conns, conn)
-				return
-			}
-	
-			fmt.Println(string(msg))
-			if err := conn.WriteMessage(websocket.TextMessage, []byte("thank you for the msg!!!")); err != nil {
-				fmt.Println("write error:", err.Error())
-			}
-		}
-		
+func WebsocketHandler() gin.HandlerFunc {
+	manager := models.ClientManager{
+		Clients:    make(map[string]*models.Client),
+		Register:   make(chan *models.Client),
+		Unregister: make(chan *models.Client),
 	}
 
+	go manager.Start()
+
+	return func(ctx *gin.Context) {
+		ws.HandleConnections(ctx.Writer, ctx.Request, &manager)
+	}
 }
